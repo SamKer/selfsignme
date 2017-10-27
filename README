@@ -1,6 +1,8 @@
 # SELFSIGNME
 
+Bundle Symfony
 create certificates with ca self-signed
+
 
 ## edit config
 in parameters.yml
@@ -22,12 +24,12 @@ selfsignme:
                     private_key_type: "!php/const:OPENSSL_KEYTYPE_RSA"
                 csr:
                     countryName: "FR"
-                    stateOrProvinceName: "ILEDEFRANCE"
-                    localityName: "PARIS"
-                    organizationName: "GENDARMERIE NATIONALE"
-                    organizationalUnitName: "SDML"
+                    stateOrProvinceName: "STATE"
+                    localityName: "CITY"
+                    organizationName: "ORGA"
+                    organizationalUnitName: "CIE"
                     commonName: null
-                    emailAddress: "samir.keriou@gendarmerie.interieur.gouv.fr"
+                    emailAddress: "mail"
 
 
 
