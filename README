@@ -1,0 +1,36 @@
+# SELFSIGNME
+
+create certificates with ca self-signed
+
+## edit config
+in parameters.yml
+
+#params bundle selfsignme
+selfsignme:
+        #store certificates in dir
+        dir: "/home/samir.keriou/.selfsignme"
+        #multiple template config for generating certificates
+        config:
+            #default config
+            default:
+                passphrase: false
+                days: "365"
+                algorythme:
+                    digest_alg: "sha512"
+                    x509_extensions: "v3_req"
+                    private_key_bits: 2048
+                    private_key_type: "!php/const:OPENSSL_KEYTYPE_RSA"
+                csr:
+                    countryName: "FR"
+                    stateOrProvinceName: "ILEDEFRANCE"
+                    localityName: "PARIS"
+                    organizationName: "GENDARMERIE NATIONALE"
+                    organizationalUnitName: "SDML"
+                    commonName: null
+                    emailAddress: "samir.keriou@gendarmerie.interieur.gouv.fr"
+
+
+
+
+php -f bin/console -- selfsignme:create ca --type=ca --config=default
+php -f bin/console -- selfsignme:create test.sam --caconf=ca
