@@ -220,7 +220,7 @@ class Certificates {
         //new csr
         $csr = openssl_csr_new($configRequest, $privateKey);
         //crt with ca
-        $crt = openssl_csr_sign($csr, $cacert, $capkey, $config['days'], $configAlgo);
+        $crt = openssl_csr_sign($csr, $cacert, $capkey, $config['days'], $configAlgo, random_int(0,100000));
 
 
         if ($fs->exists($dir)) {
