@@ -6,13 +6,11 @@
  * Time: 15:46
  */
 
-namespace Sam\SelfSignMeBundle\Services;
+namespace SamKer\SelfSignMeBundle\Services;
 
 
 use Symfony\Component\DependencyInjection\Container;
-use Symfony\Component\DependencyInjection\Dumper\YamlDumper;
 use Symfony\Component\Filesystem\Filesystem;
-use Symfony\Component\Process\Process;
 use Symfony\Component\Yaml\Yaml;
 
 class Certificates {
@@ -36,17 +34,13 @@ class Certificates {
 
     public function __construct(Container $container, $params) {
         $this->container = $container;
-//        $home = posix_getpwuid(posix_getuid())["dir"];
         $this->dirConfig = $params["dir"];
         $fs = new Filesystem();
         //dirconf
         if (!$fs->exists($this->dirConfig)) {
             $fs->mkdir($this->dirConfig);
         }
-
         $this->config = $this->parseConfig($params['config']);
-
-//        $this->createCA('ca');
     }
 
     /**
@@ -65,38 +59,6 @@ class Certificates {
             }
         }
         return $config;
-    }
-
-    /**
-     * Create certificates self signed
-     *
-     * @param      $CN
-     * @param bool $CA
-     */
-    public function create($CN, $conf = 'default', $CA = false, $type = 'crt') {
-        die('obsolete');
-        $fs = new Filesystem();
-        if (!isset($this->config[$conf])) {
-            throw new \Exception("conf option: $conf not exist in parameters");
-        }
-        $config = $this->config[$conf];
-
-        if (!isset($this->config[$CA]) && !$fs->exists($CA)) {
-            throw new \Exception("conf option for ca: $CA not exist in parameters or path to ca $CA not exist");
-        }
-
-        switch ($type) {
-            case 'crt':
-                $this->createCRT($CN, $config, $CA);
-            default:
-                break;
-            case 'ca':
-                $this->createCA($CN, $config);
-                break;
-            case 'private':
-                break;
-
-        }
     }
 
 
@@ -137,7 +99,9 @@ class Certificates {
         //$config
         $config['csr'] = $configRequest;
         $yaml = Yaml::dump($config);
-
+//        dump($passphrase);
+//        dump($configRequest);
+//        dump($configAlgo);die;
         //create private key
         $privateKey = openssl_pkey_new($configAlgo);
         //new csr
@@ -158,15 +122,19 @@ class Certificates {
         openssl_x509_export_to_file($crt, $fileCRT);
         file_put_contents($fileCNF, $yaml);
 
-        return [$fileCRT];
+        return $dir;
     }
 
     /**
      * Create a certificate
      *
-     * @param $CN     commonName
-     * @param $config specific config
-     * @param $CA     specific configCA or /path/to/ca.pem
+     * @param string $CN     commonName
+     * @param string $conf specific config
+     * @param string $passphrase mot de pass
+     * @param string $caconf ca à utiliser
+     * @param string $capath
+     * @param string $capass
+     * @return string $dir
      */
     public function createCRT($CN, $conf, $passphrase = false, $caconf = false, $capath = false, $capass = false) {
         $fs = new Filesystem();
@@ -180,6 +148,7 @@ class Certificates {
         $fileKEY = $dir . "/$CN.key";
         $fileCSR = $dir . "/$CN.csr";
         $fileCRT = $dir . "/$CN.crt";
+        $fileP12 = $dir . "/$CN.p12";
         $fileCNF = $dir . "/$CN.conf";
 
         //algo crypt
@@ -190,6 +159,7 @@ class Certificates {
         } else {
             $config['passphrase'] = $passphrase;
         }
+
         //csr
         $configRequest = $config['csr'];
         //dn
@@ -205,6 +175,7 @@ class Certificates {
                 throw new \Exception("conf option for ca not given");
             }
             $capath = $this->dirConfig . "/" . $caconf . "/" . $caconf . ".crt";
+
         }
         if ($capass === false) {
             if ($caconf === false) {
@@ -214,7 +185,10 @@ class Certificates {
             $capass = $caconfig['passphrase'];
         }
         $cacert = file_get_contents($capath);
-        $capkey = openssl_pkey_get_private(file_get_contents($this->dirConfig . "/" . $caconf . "/" . $caconf . ".key"), $capass);
+        $capkey = openssl_pkey_get_private('file://'.$this->dirConfig . "/" . $caconf . "/" . $caconf . ".key", $capass);
+        if($capkey === false) {
+            throw new \Exception(openssl_error_string());
+        }
         //create private key
         $privateKey = openssl_pkey_new($configAlgo);
         //new csr
@@ -233,8 +207,9 @@ class Certificates {
         openssl_pkey_export_to_file($privateKey, $fileKEY, $passphrase);
         openssl_csr_export_to_file($csr, $fileCSR);
         openssl_x509_export_to_file($crt, $fileCRT);
+        openssl_pkcs12_export_to_file('file://'.$fileCRT, $fileP12, $privateKey, $passphrase);
         file_put_contents($fileCNF, $yaml);
-        return [$fileCRT];
+        return $dir;
     }
 
 

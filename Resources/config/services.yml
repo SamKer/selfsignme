@@ -1,4 +1,4 @@
 services:
     self_sign_me.certificates:
-        class: Sam\SelfSignMeBundle\Services\Certificates
+        class: SamKer\SelfSignMeBundle\Services\Certificates
         arguments: [ "@service_container", "%selfsignme%" ]
