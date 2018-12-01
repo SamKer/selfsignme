@@ -11,6 +11,8 @@ namespace SamKer\SelfSignMeBundle\Services;
 
 use Symfony\Component\DependencyInjection\Container;
 use Symfony\Component\Filesystem\Filesystem;
+use Symfony\Component\Finder\Finder;
+use Symfony\Component\Finder\SplFileInfo;
 use Symfony\Component\Yaml\Yaml;
 
 class Certificates {
@@ -210,6 +212,31 @@ class Certificates {
         openssl_pkcs12_export_to_file('file://'.$fileCRT, $fileP12, $privateKey, $passphrase);
         file_put_contents($fileCNF, $yaml);
         return $dir;
+    }
+
+    /**
+     * Give certificates directory for cn
+     * @param string $cn
+     * @return string $dir;
+     */
+    public function getDir($cn) {
+        return $this->dirConfig . "/" . $cn;
+    }
+
+
+    /**
+     * give certificates contents
+     * @param $cn
+     * @return array
+     */
+    public function dumpCertificates($cn) {
+        $dump = ["cn" => $cn,"storage_directory" => $this->getDir($cn)];
+        $finder = new Finder();
+        $files = $finder->files()->in($this->getDir($cn));
+        foreach ($files as $file) {
+            $dump[$file->getExtension()] = $file->getContents();
+        }
+        return $dump;
     }
 
 

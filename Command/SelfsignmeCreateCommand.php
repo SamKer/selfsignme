@@ -7,6 +7,7 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Filesystem\Filesystem;
 
 class SelfsignmeCreateCommand extends ContainerAwareCommand {
     protected function configure() {
@@ -19,6 +20,7 @@ class SelfsignmeCreateCommand extends ContainerAwareCommand {
             ->addOption('capass', null, InputOption::VALUE_OPTIONAL, 'the ca passphrase', false)
             ->addOption('capath', null, InputOption::VALUE_OPTIONAL, 'path/to/ca.key', false)
             ->addOption('passphrase', 'p', InputOption::VALUE_OPTIONAL, 'your passphrase', false)
+            ->addOption('overwrite', null, InputOption::VALUE_OPTIONAL, 'overwrite previous cn', false)
             ->addOption('type', null, InputOption::VALUE_OPTIONAL, 'create a ca instead', 'crt');
     }
 
@@ -29,11 +31,17 @@ class SelfsignmeCreateCommand extends ContainerAwareCommand {
         $capath = $input->getOption('capath');
         $capass = $input->getOption('capass');
         $passphrase = $input->getOption('passphrase');
+        $overwrite = $input->getOption('overwrite');
         $type = $input->getOption('type');
+
+        $service = $this->getContainer()->get('self_sign_me.certificates');
+        if($overwrite !== false && is_dir($service->getDir($cn))) {
+            (new Filesystem())->remove($service->getDir($cn));
+        }
 
         switch ($type) {
             case "ca":
-                $result = $this->getContainer()->get('self_sign_me.certificates')->createCA($cn, $conf, $passphrase);
+                $result = $service->createCA($cn, $conf, $passphrase);
                 break;
             case 'crt':
             default:
@@ -43,16 +51,17 @@ class SelfsignmeCreateCommand extends ContainerAwareCommand {
                 if ($capath !== false && $capass === false) {
                     throw new \Exception("you have to specify the ca passphrase --capass=[passphrase]");
                 }
-
-                $result = $this->getContainer()->get('self_sign_me.certificates')
-                               ->createCRT($cn, $conf, $passphrase, $caconf, $capath, $capass);
-
+                $result = $service->createCRT($cn, $conf, $passphrase, $caconf, $capath, $capass);
                 break;
         }
 
 
-        dump($result);
-        $output->writeln('Command result.');
+        $dump = $service->dumpCertificates($cn);
+
+
+        $output->writeln("<info>les certificats ont été généré ici: $result</info>");
+
+        dump($dump);
     }
 
 }
