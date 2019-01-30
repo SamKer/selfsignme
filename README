@@ -48,3 +48,9 @@ commands disponible
 php -f bin/console -- selfsignme:create ca --type=ca --config=default
 php -f bin/console -- selfsignme:create test.sam --caconf=ca
 ```
+
+## survey certs tools
+testing mail
+```bash
+swaks -tls -t samir.keriou@gendarmerie.interieur.gouv.fr -s smtp.gendarmerie.fr "test" -f samir.keriou@gendarmerie.interieur.gouv.fr -p 25 -au samir.keriou -ap Svlerk_16
+```

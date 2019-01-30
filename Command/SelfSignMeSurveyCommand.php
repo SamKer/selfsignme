@@ -54,32 +54,64 @@ class SelfSignMeSurveyCommand extends ContainerAwareCommand
 
         $rapport = [];
 
+        $now = new \DateTime();
         foreach ($survey['remote'] as $host) {
-            $rapport[$host] = ["expire_at"=>"","mail_at"=>"", "error"=>""];
+
             $cmd = "nmap -p 443 --script ssl-cert $host | grep 'Not valid after' | cut -d':' -f2,3,4";
             $date = $this->cmd($cmd);
             $date = $this->formatDate($date);
             if(!$date) {
+                $rapport[$host] = [];
                 $rapport[$host]['error']  = "impossible de récupérer les infos";
+                $rapport[$host]['tag']  = "wtf";
+                $rapport[$host]['expire_at']  = "/";
+                $rapport[$host]['dn']  = $host;
+            } else {
+                $dateS = $date->format("Y-m-d");
+                $rapport["$dateS-$host"] = [];
+                $rapport["$dateS-$host"]['expire_at'] = $date->format("d/m/Y");
+                $rapport["$dateS-$host"]['error'] = "";
+                $rapport["$dateS-$host"]['dn'] = $host;
+//            $dateMail = $date->sub(new \DateInterval("P2M"));
+//            $rapport[$host]['mail_at'] = $dateMail->format("d/m/Y");
+                if ($date->diff($now)->days <= 7) {
+                    $rapport["$dateS-$host"]['tag'] = 'panic';
+                } elseif ($date->diff($now)->days <= 60) {
+                    $rapport["$dateS-$host"]['tag'] = 'warning';
+                } else {
+                    $rapport["$dateS-$host"]['tag'] = 'cool';
+                }
             }
-            $rapport[$host]['expire_at'] = $date->format("d/m/Y");
-            $dateMail = $date->sub(new \DateInterval("P2M"));
-            $rapport[$host]['mail_at'] = $dateMail->format("d/m/Y");
-
         }
+
+
+        ksort($rapport);
 
         $message = new \Swift_Message("SURVEY CERTIFICATES");
         $message->setTo($survey['mailto']);
-        $message->setFrom($survey['mailfrom']);
+        $message->setFrom("samir.keriou@gendarmerie.interieur.gouv.fr");
         $message->setBody(
             $this->twig->render("@SamKerSelfSignMe/Default/mail.html.twig",
                 ['rapport' => $rapport]
             )
         );
+        $message->setContentType("text/html");
+
         $mailer = $this->getContainer()->get('mailer');
+
+
+        $logger = new \Swift_Plugins_Loggers_ArrayLogger();
+        $mailer->registerPlugin(new \Swift_Plugins_LoggerPlugin($logger));
+//        dump($mailer);die;
+
+//        $transport = $this->getContainer()->get('swiftmailer.mailer.default.transport');
+//        $transport->setStreamOptions(array('ssl' => array('allow_self_signed' => true, 'verify_peer' => false,'verify_peer_name' => false)));
+
         $recipients = $mailer->send($message);
 
-        dump($recipients);die;
+        dump($recipients);
+        dump($logger->dump());
+//        die;
 
 
     }

@@ -1,3 +1,60 @@
 <div>
-    Test Fonctionnel, ne pas répondre
+    <style>
+        table {
+            border:thin solid black
+        }
+        thead td {
+            border:thin solid black;
+            font-weight: bold;
+        }
+        tbody {
+            background-color: black;
+            color: white;
+        }
+        tbody td {
+            border:thin solid white;
+        }
+        td.cool {
+            color: green;
+        }
+        td.panic {
+            color: red;
+        }
+        td.warning {
+            color: orange;
+        }
+        td.expire {
+            width: 150px;
+            text-align: center;
+        }
+        td.wtf {
+            color: #8959A8;
+        }
+    </style>
+    <h1>SURVEY CERTIFICATES</h1>
+    <p>Les certificats suivants ont été vérifié:</p>
+    <table>
+        <thead>
+            <tr>
+                <td>HOST</td>
+                <td>Expire le</td>
+                <td>Error!</td>
+            </tr>
+        </thead>
+        <tbody>
+        {%  for dns, check in rapport %}
+            <tr>
+                <td>{{ check.dn }}</td>
+                <td class="expire {{ check.tag }}">{{ check.expire_at }}</td>
+                <td>{{ check.error }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    <ul>
+        <li style="color:green">COOL</li>
+        <li style="color:orange">WARNING</li>
+        <li style="color:red">PANIC</li>
+        <li style="color:#8959A8">WTF</li>
+    </ul>
 </div>
