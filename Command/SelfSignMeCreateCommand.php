@@ -8,7 +8,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
-class SelfsignmeCreateCommand extends ContainerAwareCommand {
+class SelfSignMeCreateCommand extends ContainerAwareCommand {
     protected function configure() {
         $this
             ->setName('selfsignme:create')

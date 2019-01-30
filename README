@@ -6,8 +6,7 @@ create certificates with ca self-signed
 
 ## edit config
 in parameters.yml
-
-#params bundle selfsignme
+```yml
 selfsignme:
         #store certificates in dir
         dir: "/home/samir.keriou/.selfsignme"
@@ -30,9 +29,22 @@ selfsignme:
                     organizationalUnitName: "CIE"
                     commonName: null
                     emailAddress: "mail"
+```
 
+in app/AppKernal.php
+register bundle
+```php
+new SamKer\SelfSignMeBundle\SamKerSelfSignMeBundle()
+```
 
-
-
+in app/config.yml
+```yml
+imports:
+    [...]
+    - { resource: "@SamKerSelfSignMeBundle/Resources/config/services.yml" }
+```
+commands disponible
+```bash
 php -f bin/console -- selfsignme:create ca --type=ca --config=default
 php -f bin/console -- selfsignme:create test.sam --caconf=ca
+```
