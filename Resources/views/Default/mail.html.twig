@@ -39,6 +39,7 @@
                 <td>HOST</td>
                 <td>Expire le</td>
                 <td>Error!</td>
+                <td>Issuer</td>
             </tr>
         </thead>
         <tbody>
@@ -47,6 +48,7 @@
                 <td>{{ check.dn }}</td>
                 <td class="expire {{ check.tag }}">{{ check.expire_at }}</td>
                 <td>{{ check.error }}</td>
+                <td>{{ check.issuer }}</td>
             </tr>
         {% endfor %}
         </tbody>

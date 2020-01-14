@@ -57,23 +57,36 @@ class SelfSignMeSurveyCommand extends ContainerAwareCommand
         $now = new \DateTime();
         foreach ($survey['remote'] as $host) {
 
-            $cmd = "nmap -p 443 --script ssl-cert $host | grep 'Not valid after' | cut -d':' -f2,3,4";
-            $date = $this->cmd($cmd);
-            $date = $this->formatDate($date);
+            $cmd = "nmap -p 443 --script ssl-cert $host";
+//            $cmd = "nmap -p 443 --script ssl-cert $host | grep 'Not valid after' | cut -d':' -f2,3,4";
+//            $date = $this->cmd($cmd);
+            $r = $this->cmd($cmd);
+            $r = explode("\n", $r);
+            $p = [];
+            foreach ($r as $l) {
+                if(preg_match("#Not valid after: (.*)#", $l, $matches)) {
+                    $p['date'] = $matches[1];
+                }
+                if(preg_match("#Issuer: commonName=(.*)/organ#", $l, $matches)) {
+                    $p['issuer'] = $matches[1];
+                }
+            }
+
+            $date = $this->formatDate($p['date']);
             if(!$date) {
                 $rapport[$host] = [];
                 $rapport[$host]['error']  = "impossible de récupérer les infos";
                 $rapport[$host]['tag']  = "wtf";
                 $rapport[$host]['expire_at']  = "/";
                 $rapport[$host]['dn']  = $host;
+                $rapport[$host]['issuer']  = $p['issuer'];
             } else {
                 $dateS = $date->format("Y-m-d");
                 $rapport["$dateS-$host"] = [];
                 $rapport["$dateS-$host"]['expire_at'] = $date->format("d/m/Y");
                 $rapport["$dateS-$host"]['error'] = "";
                 $rapport["$dateS-$host"]['dn'] = $host;
-//            $dateMail = $date->sub(new \DateInterval("P2M"));
-//            $rapport[$host]['mail_at'] = $dateMail->format("d/m/Y");
+                $rapport["$dateS-$host"]['issuer']  = $p['issuer'];
                 if ($date->diff($now)->days <= 7) {
                     $rapport["$dateS-$host"]['tag'] = 'panic';
                 } elseif ($date->diff($now)->days <= 60) {
@@ -86,6 +99,7 @@ class SelfSignMeSurveyCommand extends ContainerAwareCommand
 
 
         ksort($rapport);
+        dump($rapport);die;
 
         $message = new \Swift_Message("SURVEY CERTIFICATES");
         $message->setTo($survey['mailto']);
