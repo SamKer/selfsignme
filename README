@@ -34,7 +34,7 @@ selfsignme:
 in app/AppKernal.php
 register bundle
 ```php
-new SamKer\SelfSignMeBundle\SamKerSelfSignMeBundle()
+new SamKer\SelfSignMeBundle\SamKerSelfSignMeBundle();
 ```
 
 in app/config.yml

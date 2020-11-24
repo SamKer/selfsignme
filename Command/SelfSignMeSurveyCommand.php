@@ -99,7 +99,7 @@ class SelfSignMeSurveyCommand extends ContainerAwareCommand
 
 
         ksort($rapport);
-        dump($rapport);die;
+//        dump($rapport);die;
 
         $message = new \Swift_Message("SURVEY CERTIFICATES");
         $message->setTo($survey['mailto']);
