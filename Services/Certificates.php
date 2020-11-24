@@ -101,7 +101,7 @@ class Certificates {
         //$config
         $config['csr'] = $configRequest;
         $yaml = Yaml::dump($config);
-//        dump($passphrase);
+//        dump($passphrase);die;
 //        dump($configRequest);
 //        dump($configAlgo);die;
         //create private key
@@ -186,6 +186,8 @@ class Certificates {
             $caconfig = Yaml::parse(file_get_contents($this->dirConfig . "/" . $caconf . "/" . $caconf . ".conf"));
             $capass = $caconfig['passphrase'];
         }
+
+
         $cacert = file_get_contents($capath);
         $capkey = openssl_pkey_get_private('file://'.$this->dirConfig . "/" . $caconf . "/" . $caconf . ".key", $capass);
         if($capkey === false) {

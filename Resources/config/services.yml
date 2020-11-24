@@ -2,3 +2,9 @@ services:
     self_sign_me.certificates:
         class: SamKer\SelfSignMeBundle\Services\Certificates
         arguments: [ "@service_container", "%selfsignme%" ]
+
+    self_sign_me.survey:
+        class: SamKer\SelfSignMeBundle\Command\SelfSignMeSurveyCommand
+        arguments: [ "@twig" ]
+        tags:
+            - { name: console.command , command: 'selfsignme:survey' }

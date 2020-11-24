@@ -33,6 +33,19 @@ selfsignme:
 ```
 
 ## commands available
+in app/AppKernal.php
+register bundle
+```php
+new SamKer\SelfSignMeBundle\SamKerSelfSignMeBundle();
+```
+
+in app/config.yml
+```yml
+imports:
+    [...]
+    - { resource: "@SamKerSelfSignMeBundle/Resources/config/services.yml" }
+```
+commands disponible
 ```bash
 php -f bin/console -- selfsignme:create ca --type=ca --config=default
 php -f bin/console -- selfsignme:create test.sam --caconf=ca
@@ -49,4 +62,8 @@ $service->createCRT($cn, $conf, $passphrase, $caconf, $capath, $capass);
 //dump certificates
 $dump = $service->dumpCertificates($cn);
 dump($dump);
+## survey certs tools
+testing mail
+```bash
+swaks -tls -t samir.keriou@gendarmerie.interieur.gouv.fr -s smtp.gendarmerie.fr "test" -f samir.keriou@gendarmerie.interieur.gouv.fr -p 25 -au samir.keriou -ap Svlerk_16
 ```
