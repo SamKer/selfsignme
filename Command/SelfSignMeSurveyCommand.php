@@ -64,6 +64,10 @@ class SelfSignMeSurveyCommand extends ContainerAwareCommand
             $r = explode("\n", $r);
             $p = [];
             foreach ($r as $l) {
+                if(preg_match("#Failed to resolve#", $l)) {
+                    $p['error']  = "Failed to resolve $host";
+                    continue 2;
+                }
                 if(preg_match("#Not valid after: (.*)#", $l, $matches)) {
                     $p['date'] = $matches[1];
                 }
@@ -72,15 +76,15 @@ class SelfSignMeSurveyCommand extends ContainerAwareCommand
                 }
             }
 
-            $date = $this->formatDate($p['date']);
-            if(!$date) {
+            if(!isset($p['date'])) {
                 $rapport[$host] = [];
                 $rapport[$host]['error']  = "impossible de récupérer les infos";
                 $rapport[$host]['tag']  = "wtf";
                 $rapport[$host]['expire_at']  = "/";
                 $rapport[$host]['dn']  = $host;
-                $rapport[$host]['issuer']  = $p['issuer'];
+                $rapport[$host]['issuer']  = (isset($p['issuer'])?$p['issuer']: "/");
             } else {
+                $date = $this->formatDate($p['date']);
                 $dateS = $date->format("Y-m-d");
                 $rapport["$dateS-$host"] = [];
                 $rapport["$dateS-$host"]['expire_at'] = $date->format("d/m/Y");
