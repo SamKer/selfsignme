@@ -9,14 +9,13 @@
 namespace SamKer\SelfSignMe\Lib;
 
 
-use Symfony\Component\DependencyInjection\Container;
+use SamKer\SelfSignMe\Entity\Certificat;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
-use Symfony\Component\Finder\SplFileInfo;
-use Symfony\Component\HttpClient\HttpClient;
 use Symfony\Component\Yaml\Yaml;
 
-class Certificates {
+class Certificates
+{
 
 
     private string $dirConfig;
@@ -28,7 +27,8 @@ class Certificates {
     private array $survey;
 
 
-    public function __construct(string $selfsignmeDir, array $selfsignmeConfig, array $selfsignmeSurvey) {
+    public function __construct(string $selfsignmeDir, array $selfsignmeConfig, array $selfsignmeSurvey)
+    {
         $this->dirConfig = $selfsignmeDir;
         $fs = new Filesystem();
         //dirconf
@@ -43,8 +43,8 @@ class Certificates {
     /**
      * Create ca
      *
-     * @param string $dir    subdir to store certificates
-     * @param array  $config options for create certificates with specific conf
+     * @param string $dir subdir to store certificates
+     * @param array $config options for create certificates with specific conf
      * @throws \Exception
      */
     public function createCA($CN, $conf, $passphrase = false): string
@@ -107,7 +107,7 @@ class Certificates {
     /**
      * Create a certificate
      *
-     * @param string $CN     commonName
+     * @param string $CN commonName
      * @param string $conf specific config
      * @param string $passphrase mot de pass
      * @param string $caconf ca à utiliser
@@ -115,7 +115,8 @@ class Certificates {
      * @param string $capass
      * @return string $dir
      */
-    public function createCRT($CN, $conf, $passphrase = false, $caconf = false, $capath = false, $capass = false) {
+    public function createCRT($CN, $conf, $passphrase = false, $caconf = false, $capath = false, $capass = false)
+    {
         $fs = new Filesystem();
         //test conf
         if (!isset($this->config[$conf])) {
@@ -166,8 +167,8 @@ class Certificates {
 
 
         $cacert = file_get_contents($capath);
-        $capkey = openssl_pkey_get_private('file://'.$this->dirConfig . "/" . $caconf . "/" . $caconf . ".key", $capass);
-        if($capkey === false) {
+        $capkey = openssl_pkey_get_private('file://' . $this->dirConfig . "/" . $caconf . "/" . $caconf . ".key", $capass);
+        if ($capkey === false) {
             throw new \Exception(openssl_error_string());
         }
         //create private key
@@ -175,7 +176,7 @@ class Certificates {
         //new csr
         $csr = openssl_csr_new($configRequest, $privateKey);
         //crt with ca
-        $crt = openssl_csr_sign($csr, $cacert, $capkey, $config['days'], $configAlgo, random_int(0,100000));
+        $crt = openssl_csr_sign($csr, $cacert, $capkey, $config['days'], $configAlgo, random_int(0, 100000));
 
 
         if ($fs->exists($dir)) {
@@ -188,7 +189,7 @@ class Certificates {
         openssl_pkey_export_to_file($privateKey, $fileKEY, $passphrase);
         openssl_csr_export_to_file($csr, $fileCSR);
         openssl_x509_export_to_file($crt, $fileCRT);
-        openssl_pkcs12_export_to_file('file://'.$fileCRT, $fileP12, $privateKey, $passphrase);
+        openssl_pkcs12_export_to_file('file://' . $fileCRT, $fileP12, $privateKey, $passphrase);
         file_put_contents($fileCNF, $yaml);
         return $dir;
     }
@@ -198,7 +199,8 @@ class Certificates {
      * @param string $cn
      * @return string $dir;
      */
-    public function getDir($cn) {
+    public function getDir($cn)
+    {
         return $this->dirConfig . "/" . $cn;
     }
 
@@ -208,8 +210,9 @@ class Certificates {
      * @param $cn
      * @return array
      */
-    public function dumpCertificates($cn) {
-        $dump = ["cn" => $cn,"storage_directory" => $this->getDir($cn)];
+    public function dumpCertificates($cn)
+    {
+        $dump = ["cn" => $cn, "storage_directory" => $this->getDir($cn)];
         $finder = new Finder();
         $files = $finder->files()->in($this->getDir($cn));
         foreach ($files as $file) {
@@ -218,16 +221,33 @@ class Certificates {
         return $dump;
     }
 
-    public function checkRemoteCert(string $url): array
+    public function checkRemoteCert(string $url): Certificat
     {
 
-$orignal_parse = parse_url($url, PHP_URL_HOST);
-$get = stream_context_create(array("ssl" => array("capture_peer_cert" => TRUE)));
-$read = stream_socket_client("ssl://".$orignal_parse.":443", $errno, $errstr,
-30, STREAM_CLIENT_CONNECT, $get);
-$cert = stream_context_get_params($read);
-$certinfo = openssl_x509_parse($cert['options']['ssl']['peer_certificate']);
-dd($certinfo);
+//        $orignal_parse = parse_url($url, PHP_URL_HOST);
+        $get = stream_context_create([
+            "ssl" => [
+                "capture_peer_cert" => TRUE,
+                "verify_peer" => false
+            ]
+        ]);
+
+        $read = stream_socket_client(
+            "ssl://" . $url . ":443",
+            $errno,
+            $errstr,
+            30,
+            STREAM_CLIENT_CONNECT,
+            $get
+        );
+        if($errstr) {
+            throw new \Exception($errstr);
+        }
+        $cert = stream_context_get_params($read);
+
+        $certificat = new Certificat();
+        $certificat->setCertInfos(openssl_x509_parse($cert['options']['ssl']['peer_certificate']));
+        return $certificat;
     }
 
 

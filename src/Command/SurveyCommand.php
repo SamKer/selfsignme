@@ -8,29 +8,40 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Style\SymfonyStyle;
+use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
+use Symfony\Component\Mailer\MailerInterface;
+use Symfony\Component\Mailer\Transport\TransportInterface;
+use Symfony\Component\Mime\Email;
+use Symfony\Component\Mime\Header\Headers;
 use Symfony\Component\Process\Exception\ProcessFailedException;
 use Symfony\Component\Process\Process;
 use Twig\Environment;
+use Twig\Error\LoaderError;
+use Twig\Error\RuntimeError;
+use Twig\Error\SyntaxError;
 use Twig_Environment;
 
 class SurveyCommand extends Command
 {
 
-    protected static string $defaultName = 'selfsignme:survey';
+    protected static $defaultName = 'selfsignme:survey';
 
     private Environment $twig;
 
     private array $confSurvey;
     private Certificates $certService;
+    private TransportInterface $mailer;
 
     /**
      * SelfSignMeSurveyCommand constructor.
      * @param Environment $twig
      */
-    public function __construct(Environment $twig, array $selfsignmeSurvey, Certificates $certService) {
+    public function __construct(Environment $twig, array $selfsignmeSurvey, Certificates $certService, TransportInterface $mailer) {
         $this->twig = $twig;
         $this->confSurvey = $selfsignmeSurvey;
         $this->certService = $certService;
+        $this->mailer = $mailer;
         parent::__construct();
     }
 
@@ -44,44 +55,23 @@ class SurveyCommand extends Command
         ;
     }
 
+    /**
+     * @throws SyntaxError
+     * @throws TransportExceptionInterface
+     * @throws RuntimeError
+     * @throws LoaderError
+     */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        $io = new SymfonyStyle($input, $output);
         $survey = $this->confSurvey;
-
         $rapport = [];
-
-
-        $url = "https://partage-ng.psi.minint.fr";
-        $this->certService->checkRemoteCert($url);
-$orignal_parse = parse_url($url, PHP_URL_HOST);
-$get = stream_context_create(array("ssl" => array("capture_peer_cert" => TRUE)));
-$read = stream_socket_client("ssl://".$orignal_parse.":443", $errno, $errstr,
-30, STREAM_CLIENT_CONNECT, $get);
-$cert = stream_context_get_params($read);
-$certinfo = openssl_x509_parse($cert['options']['ssl']['peer_certificate']);
-
-dd($certinfo);
-
-
         $now = new \DateTime();
         foreach ($survey['remote'] as $host) {
+            $certificat = $this->certService->checkRemoteCert($host);
 
-            $cmd = "nmap -p 443 --script ssl-cert $host";
-//            $cmd = "nmap -p 443 --script ssl-cert $host | grep 'Not valid after' | cut -d':' -f2,3,4";
-//            $date = $this->cmd($cmd);
-            $r = $this->cmd($cmd);
-            $r = explode("\n", $r);
             $p = [];
-            foreach ($r as $l) {
-                if(preg_match("#Not valid after: (.*)#", $l, $matches)) {
-                    $p['date'] = $matches[1];
-                }
-                if(preg_match("#Issuer: commonName=(.*)/organ#", $l, $matches)) {
-                    $p['issuer'] = $matches[1];
-                }
-            }
-
-            $date = $this->formatDate($p['date']);
+            $date = $certificat->getDateEnd();
             if(!$date) {
                 $rapport[$host] = [];
                 $rapport[$host]['error']  = "impossible de récupérer les infos";
@@ -95,7 +85,7 @@ dd($certinfo);
                 $rapport["$dateS-$host"]['expire_at'] = $date->format("d/m/Y");
                 $rapport["$dateS-$host"]['error'] = "";
                 $rapport["$dateS-$host"]['dn'] = $host;
-                $rapport["$dateS-$host"]['issuer']  = $p['issuer'];
+                $rapport["$dateS-$host"]['issuer']  = $certificat->getIssuer();
                 if ($date->diff($now)->days <= 7) {
                     $rapport["$dateS-$host"]['tag'] = 'panic';
                 } elseif ($date->diff($now)->days <= 60) {
@@ -107,34 +97,33 @@ dd($certinfo);
         }
 
 
-        ksort($rapport);
-        dump($rapport);die;
+//        ksort($rapport);
+//        dump($rapport);die;
 
-        $message = new \Swift_Message("SURVEY CERTIFICATES");
-        $message->setTo($survey['mailto']);
-        $message->setFrom("samir.keriou@gendarmerie.interieur.gouv.fr");
-        $message->setBody(
+        $message = new Email();
+        foreach ($survey['mailto'] as $to) {
+            $message->addTo($to);
+        }
+        $message->from($survey['mailfrom']);
+        $message->html(
             $this->twig->render("@SamKerSelfSignMe/Default/mail.html.twig",
                 ['rapport' => $rapport]
             )
         );
-        $message->setContentType("text/html");
+        $message->getHeaders()->addHeader("Content-Type", "text/html");
 
-        $mailer = $this->getContainer()->get('mailer');
+        $mailer = $this->mailer;
 
-
-        $logger = new \Swift_Plugins_Loggers_ArrayLogger();
-        $mailer->registerPlugin(new \Swift_Plugins_LoggerPlugin($logger));
-//        dump($mailer);die;
-
-//        $transport = $this->getContainer()->get('swiftmailer.mailer.default.transport');
-//        $transport->setStreamOptions(array('ssl' => array('allow_self_signed' => true, 'verify_peer' => false,'verify_peer_name' => false)));
-
-        $recipients = $mailer->send($message);
-
-        dump($recipients);
-        dump($logger->dump());
-//        die;
+        try {
+            $sendMessage = $mailer->send($message);
+        } catch (TransportExceptionInterface $e) {
+            $io->error($e->getMessage());
+        }
+        if($r = $sendMessage->getDebug()) {
+            dd($r);
+        }
+        dump($rapport);
+        return true;
 
 
     }

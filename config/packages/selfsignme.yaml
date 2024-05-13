@@ -1,52 +1,37 @@
-samker_selfsignme:
-  #store certificates in dir
-  dir: "/var/www/var/selfsignme"
-  #multiple template config for generating certificates
-  config:
-    #default config
-    default:
-      passphrase: false
-      days: "365"
-      algorythme:
-        digest_alg: "sha512"
-        x509_extensions: "v3_req"
-        private_key_bits: 2048
-        private_key_type: "!php/const:OPENSSL_KEYTYPE_RSA"
-      csr:
-        countryName: "FR"
-        stateOrProvinceName: "STATE"
-        localityName: "CITY"
-        organizationName: "ORGA"
-        organizationalUnitName: "CIE"
-        commonName: null
-        emailAddress: "mail"
-
-  survey:
-      extensions: [ "pem", "key", "p12" ]
-      mailfrom: "samir.keriou@gendarmerie.interieur.gouv.fr"
-      mailto:
-          - "samir.keriou@gendarmerie.interieur.gouv.fr"
-      local: []
-      remote:
-          - partage-ng.psi.minint.fr
-          - partage.psi.minint.fr
-          - partage.sso.psi.minint.fr
-          - partage.dvgendarmerie.fr
-          - partage.gendarmerie.fr
-          - scality-s3.gendarmerie.fr
-          - cloud.ggd64.gendarmerie.fr
-          - memorial.sso.gendarmerie.fr
-          - gecem.sso.gendarmerie.fr
-          - gitlab-pic.dvgendarmerie.fr
-          - omnibus-pic.gendarmerie.fr
-          - nexus-pic.gendarmerie.fr
-          - nexus-pic-ng.gendarmerie.fr
-
-#    csr:
-#                    countryName: "FR"
-#                    stateOrProvinceName: "ILEDEFRANCE"
-#                    localityName: "PARIS"
-#                    organizationName: "GENDARMERIE NATIONALE"
-#                    organizationalUnitName: "SDML"
-#                    commonName: null
-#                    emailAddress: "samir.keriou@gendarmerie.interieur.gouv.fr"
+#samker_selfsignme:
+#  #store certificates in dir
+#  dir: "%env(SELFSIGNME_DIR)%"
+#  #multiple template config for generating certificates
+#  config:
+#    #default config
+#    default:
+#      passphrase: false
+#      days: "365"
+#      algorythme:
+#        digest_alg: "sha512"
+#        x509_extensions: "v3_req"
+#        private_key_bits: 2048
+#        private_key_type: "!php/const:OPENSSL_KEYTYPE_RSA"
+#      csr:
+#        countryName: "%env(SELFSIGNME_CONFIG_DEFAULT_CSR_COUNTRYNAME)%"
+#        stateOrProvinceName: "%env(SELFSIGNME_CONFIG_DEFAULT_CSR_STATE)%"
+#        localityName: "%env(SELFSIGNME_CONFIG_DEFAULT_CSR_LOCALITY)%"
+#        organizationName: "%env(SELFSIGNME_CONFIG_DEFAULT_CSR_ORGNAME)%"
+#        organizationalUnitName: "%env(SELFSIGNME_CONFIG_DEFAULT_CSR_ORGUNIT)%"
+#        commonName: null
+#        emailAddress: "%env(SELFSIGNME_CONFIG_DEFAULT_CSR_EMAIL)%"
+#
+#  survey:
+#      extensions: [ "pem", "key", "p12" ]
+#      mailfrom: "%env(SELFSIGNME_SURVEY_MAILFROM)%"
+#      mailto: "%env(json:SELFSIGNME_SURVEY_MAILTO)%"
+#      local: []
+#      remote: "%env(SELFSIGNME_SURVEY_REMOTE)%"
+##    csr:
+##                    countryName: "FR"
+##                    stateOrProvinceName: "ILEDEFRANCE"
+##                    localityName: "PARIS"
+##                    organizationName: "GENDARMERIE NATIONALE"
+##                    organizationalUnitName: "SDML"
+##                    commonName: null
+##                    emailAddress: "samir.keriou@gendarmerie.interieur.gouv.fr"
