@@ -119,9 +119,9 @@ class SurveyCommand extends Command
         } catch (TransportExceptionInterface $e) {
             $io->error($e->getMessage());
         }
-        if($r = $sendMessage->getDebug()) {
-            dd($r);
-        }
+//        if($r = $sendMessage->getDebug()) {
+//            dd($r);
+//        }
         dump($rapport);
         return true;
 

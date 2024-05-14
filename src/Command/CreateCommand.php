@@ -29,11 +29,11 @@ class CreateCommand extends Command
             ->setDescription('create self signed certificates')
             ->addArgument('CN', InputArgument::REQUIRED, 'Common name')
             ->addOption('config', 'c', InputOption::VALUE_OPTIONAL, 'choose a specific config', 'default')
-            ->addOption('caconf', null, InputOption::VALUE_OPTIONAL, 'choose a specific ca', false)
-            ->addOption('capass', null, InputOption::VALUE_OPTIONAL, 'the ca passphrase', false)
-            ->addOption('capath', null, InputOption::VALUE_OPTIONAL, 'path/to/ca.key', false)
-            ->addOption('passphrase', 'p', InputOption::VALUE_OPTIONAL, 'your passphrase', false)
-            ->addOption('overwrite', null, InputOption::VALUE_OPTIONAL, 'overwrite previous cn', false)
+            ->addOption('caconf', null, InputOption::VALUE_OPTIONAL, 'choose a specific ca', null)
+            ->addOption('capass', null, InputOption::VALUE_OPTIONAL, 'the ca passphrase', null)
+            ->addOption('capath', null, InputOption::VALUE_OPTIONAL, 'path/to/ca.key', null)
+            ->addOption('passphrase', 'p', InputOption::VALUE_OPTIONAL, 'your passphrase', null)
+            ->addOption('overwrite', null, InputOption::VALUE_OPTIONAL, 'overwrite previous cn', null)
             ->addOption('type', null, InputOption::VALUE_OPTIONAL, 'create a ca instead', 'crt');
     }
 
@@ -62,10 +62,10 @@ class CreateCommand extends Command
                 break;
             case 'crt':
             default:
-                if ($caconf === false && $capath === false) {
+                if ($caconf === null && $capath === null) {
                     throw new \Exception("you have to specify the ca conf with --caconf=[conf] or specify path to ca with --capath=[path/to/ca.key");;
                 }
-                if ($capath !== false && $capass === false) {
+                if ($capath !== null && $capass === null) {
                     throw new \Exception("you have to specify the ca passphrase --capass=[passphrase]");
                 }
                 $result = $service->createCRT($cn, $conf, $passphrase, $caconf, $capath, $capass);

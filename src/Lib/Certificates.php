@@ -9,6 +9,7 @@
 namespace SamKer\SelfSignMe\Lib;
 
 
+use Exception;
 use SamKer\SelfSignMe\Entity\Certificat;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
@@ -43,29 +44,30 @@ class Certificates
     /**
      * Create ca
      *
-     * @param string $dir subdir to store certificates
-     * @param array $config options for create certificates with specific conf
-     * @throws \Exception
+     * @param string $cn subdir to store certificates
+     * @param string $conf options for create certificates with specific conf
+     * @param ?string $passphrase
+     * @throws Exception
      */
-    public function createCA($CN, $conf, $passphrase = false): string
+    public function createCA(string $cn, string $conf,?string  $passphrase = null): string
     {
         //test conf
         if (!isset($this->config[$conf])) {
-            throw new \Exception("conf option for ca: $conf not exist in parameters");
+            throw new Exception("conf option for ca: $conf not exist in parameters");
         }
         $config = $this->config[$conf];
 
         //check dirconf
-        $dir = $this->dirConfig . "/" . $CN;
-        $fileKEY = $dir . "/$CN.key";
-        $fileCSR = $dir . "/$CN.csr";
-        $fileCRT = $dir . "/$CN.crt";
-        $fileCNF = $dir . "/$CN.conf";
+        $dir = $this->dirConfig . "/" . $cn;
+        $fileKEY = $dir . "/$cn.key";
+        $fileCSR = $dir . "/$cn.csr";
+        $fileCRT = $dir . "/$cn.crt";
+        $fileCNF = $dir . "/$cn.conf";
         //algo crypt
         $config['algorythme']['x509_extensions'] = 'v3_ca';
         $configAlgo = $config['algorythme'];
         //$passphrase
-        if ($passphrase === false) {
+        if ($passphrase === null && $config['passphrase'] !== false) {
             $passphrase = $config['passphrase'];
         } else {
             $config['passphrase'] = $passphrase;
@@ -73,7 +75,7 @@ class Certificates
         //csr
         $configRequest = $config['csr'];
         //dn
-        $configRequest['commonName'] = $CN;
+        $configRequest['commonName'] = $cn;
 
         //$config
         $config['csr'] = $configRequest;
@@ -90,7 +92,7 @@ class Certificates
 
         $fs = new Filesystem();
         if ($fs->exists($dir)) {
-            throw new \Exception("dir $dir exist, specify another CN or delete it first");
+            throw new Exception("dir $dir exist, specify another CN or delete it first");
         }
 
         $fs->mkdir($dir);
@@ -107,7 +109,7 @@ class Certificates
     /**
      * Create a certificate
      *
-     * @param string $CN commonName
+     * @param string $cn commonName
      * @param string $conf specific config
      * @param string $passphrase mot de pass
      * @param string $caconf ca à utiliser
@@ -115,26 +117,26 @@ class Certificates
      * @param string $capass
      * @return string $dir
      */
-    public function createCRT($CN, $conf, $passphrase = false, $caconf = false, $capath = false, $capass = false)
+    public function createCRT(string $cn,string $conf, ?string $passphrase = null, ?string $caconf = null, ?string $capath = null, ?string $capass = null)
     {
         $fs = new Filesystem();
         //test conf
         if (!isset($this->config[$conf])) {
-            throw new \Exception("conf option for ca: $conf not exist in parameters");
+            throw new Exception("conf option for ca: $conf not exist in parameters");
         }
         $config = $this->config[$conf];
         //check dirconf
-        $dir = $this->dirConfig . "/" . $CN;
-        $fileKEY = $dir . "/$CN.key";
-        $fileCSR = $dir . "/$CN.csr";
-        $fileCRT = $dir . "/$CN.crt";
-        $fileP12 = $dir . "/$CN.p12";
-        $fileCNF = $dir . "/$CN.conf";
+        $dir = $this->dirConfig . "/" . $cn;
+        $fileKEY = $dir . "/$cn.key";
+        $fileCSR = $dir . "/$cn.csr";
+        $fileCRT = $dir . "/$cn.crt";
+        $fileP12 = $dir . "/$cn.p12";
+        $fileCNF = $dir . "/$cn.conf";
 
         //algo crypt
         $configAlgo = $config['algorythme'];
         //$passphrase
-        if ($passphrase === false) {
+        if ($passphrase === null) {
             $passphrase = $config['passphrase'];
         } else {
             $config['passphrase'] = $passphrase;
@@ -143,7 +145,7 @@ class Certificates
         //csr
         $configRequest = $config['csr'];
         //dn
-        $configRequest['commonName'] = $CN;
+        $configRequest['commonName'] = $cn;
 
         //$config
         $config['csr'] = $configRequest;
@@ -152,14 +154,14 @@ class Certificates
         //cacert
         if ($capath === false) {
             if ($caconf === false) {
-                throw new \Exception("conf option for ca not given");
+                throw new Exception("conf option for ca not given");
             }
             $capath = $this->dirConfig . "/" . $caconf . "/" . $caconf . ".crt";
 
         }
         if ($capass === false) {
             if ($caconf === false) {
-                throw new \Exception("conf option for ca not given");
+                throw new Exception("conf option for ca not given");
             }
             $caconfig = Yaml::parse(file_get_contents($this->dirConfig . "/" . $caconf . "/" . $caconf . ".conf"));
             $capass = $caconfig['passphrase'];
@@ -169,7 +171,7 @@ class Certificates
         $cacert = file_get_contents($capath);
         $capkey = openssl_pkey_get_private('file://' . $this->dirConfig . "/" . $caconf . "/" . $caconf . ".key", $capass);
         if ($capkey === false) {
-            throw new \Exception(openssl_error_string());
+            throw new Exception(openssl_error_string());
         }
         //create private key
         $privateKey = openssl_pkey_new($configAlgo);
@@ -180,7 +182,7 @@ class Certificates
 
 
         if ($fs->exists($dir)) {
-            throw new \Exception("dir $dir exist, specify another CN or delete it first");
+            throw new Exception("dir $dir exist, specify another CN or delete it first");
         }
 
         $fs->mkdir($dir);
@@ -241,7 +243,7 @@ class Certificates
             $get
         );
         if($errstr) {
-            throw new \Exception($errstr);
+            throw new Exception($errstr);
         }
         $cert = stream_context_get_params($read);
 
