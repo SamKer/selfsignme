@@ -10,10 +10,12 @@ namespace SamKer\SelfSignMe\Lib;
 
 
 use Exception;
+use Random\RandomException;
 use SamKer\SelfSignMe\Entity\Certificat;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\Yaml\Yaml;
+use function Webmozart\Assert\Tests\StaticAnalysis\boolean;
 
 class Certificates
 {
@@ -116,6 +118,7 @@ class Certificates
      * @param string $capath
      * @param string $capass
      * @return string $dir
+     * @throws RandomException
      */
     public function createCRT(string $cn,string $conf, ?string $passphrase = null, ?string $caconf = null, ?string $capath = null, ?string $capass = null)
     {
@@ -152,21 +155,22 @@ class Certificates
         $yaml = Yaml::dump($config);
 
         //cacert
-        if ($capath === false) {
-            if ($caconf === false) {
+        if ($capath === null) {
+            if ($caconf === null) {
                 throw new Exception("conf option for ca not given");
             }
             $capath = $this->dirConfig . "/" . $caconf . "/" . $caconf . ".crt";
-
+            if(!file_exists($capath)) {
+                throw new Exception("path for ca conf not exist");
+            }
         }
-        if ($capass === false) {
-            if ($caconf === false) {
+        if ($capass === null) {
+            if ($caconf === null) {
                 throw new Exception("conf option for ca not given");
             }
             $caconfig = Yaml::parse(file_get_contents($this->dirConfig . "/" . $caconf . "/" . $caconf . ".conf"));
             $capass = $caconfig['passphrase'];
         }
-
 
         $cacert = file_get_contents($capath);
         $capkey = openssl_pkey_get_private('file://' . $this->dirConfig . "/" . $caconf . "/" . $caconf . ".key", $capass);
@@ -201,7 +205,7 @@ class Certificates
      * @param string $cn
      * @return string $dir;
      */
-    public function getDir($cn)
+    public function getDir($cn): string
     {
         return $this->dirConfig . "/" . $cn;
     }
@@ -212,7 +216,7 @@ class Certificates
      * @param $cn
      * @return array
      */
-    public function dumpCertificates($cn)
+    public function dumpCertificates($cn): array
     {
         $dump = ["cn" => $cn, "storage_directory" => $this->getDir($cn)];
         $finder = new Finder();
@@ -225,11 +229,9 @@ class Certificates
 
     public function checkRemoteCert(string $url): Certificat
     {
-
-//        $orignal_parse = parse_url($url, PHP_URL_HOST);
         $get = stream_context_create([
             "ssl" => [
-                "capture_peer_cert" => TRUE,
+                "capture_peer_cert" => true,
                 "verify_peer" => false
             ]
         ]);
