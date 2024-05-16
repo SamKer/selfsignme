@@ -10,6 +10,7 @@ namespace SamKer\SelfSignMe\Lib;
 
 
 use Exception;
+use Jelix\IniFile\IniModifier;
 use Random\RandomException;
 use SamKer\SelfSignMe\Entity\Certificat;
 use Symfony\Component\Filesystem\Filesystem;
@@ -28,11 +29,18 @@ class Certificates
      */
     private array $config;
     private array $survey;
+    private string $opensslConf;
 
 
-    public function __construct(string $selfsignmeDir, array $selfsignmeConfig, array $selfsignmeSurvey)
+    public function __construct(
+        string $selfsignmeDir,
+        string $selfsignmeOpensslConf,
+        array $selfsignmeConfig,
+        array $selfsignmeSurvey
+    )
     {
         $this->dirConfig = $selfsignmeDir;
+        $this->opensslConf = $selfsignmeOpensslConf;
         $fs = new Filesystem();
         //dirconf
         if (!$fs->exists($this->dirConfig)) {
@@ -120,7 +128,15 @@ class Certificates
      * @return string $dir
      * @throws RandomException
      */
-    public function createCRT(string $cn,string $conf, ?string $passphrase = null, ?string $caconf = null, ?string $capath = null, ?string $capass = null)
+    public function createCRT(
+        string $cn,
+        string $conf,
+        ?string $passphrase = null,
+        ?string $caconf = null,
+        ?string $capath = null,
+        ?string $capass = null,
+        array $san = []
+    )
     {
         $fs = new Filesystem();
         //test conf
@@ -136,6 +152,13 @@ class Certificates
         $fileP12 = $dir . "/$cn.p12";
         $fileCNF = $dir . "/$cn.conf";
 
+        //opensslConfTmpFile
+        if(!file_exists($this->opensslConf)) {
+            throw new Exception("openssl.cnf not found at ". $this->opensslConf);
+        }
+        $opensslConf = $this->dirConfig . "/openssl.cnf";
+        copy($this->opensslConf, $opensslConf);
+
         //algo crypt
         $configAlgo = $config['algorythme'];
         //$passphrase
@@ -147,8 +170,33 @@ class Certificates
 
         //csr
         $configRequest = $config['csr'];
+
         //dn
         $configRequest['commonName'] = $cn;
+
+        //SAN
+        if(empty($san)) {
+            $san[] = $cn;
+        }
+        if(!in_array($cn, $san)) {
+            $san[] = $cn;
+        }
+        $subjectAltName = implode(",", array_map(
+            function ($dn) {
+                return "DNS:" . $dn;
+            }, $san)
+        );
+
+        $ini = new IniModifier($opensslConf);
+//        $ini->setValue("subjectAltName", "\${ENV::SELFSIGNME_SUBJECTALTNAME}", " v3_req ");
+        $ini->setValue("subjectAltName", "@selffsignme_san", " v3_req ");
+        foreach ($san as $i => $dn) {
+            $ini->setValue("DNS.$i", "$dn", " @selffsignme_san ");
+        }
+
+        $ini->save();
+        putenv("SELFSIGNME_SUBJECTALTNAME=$subjectAltName");
+
 
         //$config
         $config['csr'] = $configRequest;
@@ -180,7 +228,11 @@ class Certificates
         //create private key
         $privateKey = openssl_pkey_new($configAlgo);
         //new csr
-        $csr = openssl_csr_new($configRequest, $privateKey);
+        // conf
+        $configAlgo['config'] = $opensslConf;
+       $configAlgo['req_extensions']= 'v3_req';
+        $csr = openssl_csr_new($configRequest, $privateKey, $configAlgo);
+
         //crt with ca
         $crt = openssl_csr_sign($csr, $cacert, $capkey, $config['days'], $configAlgo, random_int(0, 100000));
 

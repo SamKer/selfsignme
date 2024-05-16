@@ -1,6 +1,7 @@
 #samker_selfsignme:
 #  #store certificates in dir
 #  dir: "%env(SELFSIGNME_DIR)%"
+#  openssl_conf: "%env(SELFSIGNME_OPENSSL_CONF)%"
 #  #multiple template config for generating certificates
 #  config:
 #    #default config

@@ -34,6 +34,7 @@ class CreateCommand extends Command
             ->addOption('capath', null, InputOption::VALUE_OPTIONAL, 'path/to/ca.key', null)
             ->addOption('passphrase', 'p', InputOption::VALUE_OPTIONAL, 'your passphrase', null)
             ->addOption('overwrite', null, InputOption::VALUE_OPTIONAL, 'overwrite previous cn', null)
+            ->addOption('san', null, InputOption::VALUE_IS_ARRAY | InputArgument::OPTIONAL, 'subject Alt Name, repeat otpion', [])
             ->addOption('type', null, InputOption::VALUE_OPTIONAL, 'create a ca instead', 'crt');
     }
 
@@ -50,6 +51,9 @@ class CreateCommand extends Command
         $passphrase = $input->getOption('passphrase');
         $overwrite = $input->getOption('overwrite');
         $type = $input->getOption('type');
+
+        $san = $input->getOption('san');
+        $san[] = $cn;
 
         $service = $this->certService;
         if ($overwrite !== false && is_dir($service->getDir($cn))) {
@@ -68,7 +72,7 @@ class CreateCommand extends Command
                 if ($capath !== null && $capass === null) {
                     throw new \Exception("you have to specify the ca passphrase --capass=[passphrase]");
                 }
-                $result = $service->createCRT($cn, $conf, $passphrase, $caconf, $capath, $capass);
+                $result = $service->createCRT($cn, $conf, $passphrase, $caconf, $capath, $capass, $san);
                 break;
         }
 

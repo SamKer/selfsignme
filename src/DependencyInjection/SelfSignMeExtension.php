@@ -24,6 +24,7 @@ class SelfSignMeExtension extends Extension
         }
         // TODO: Implement load() method.
         $container->setParameter("samker_selfsignme.dir", $configs[0]['dir']);
+        $container->setParameter("samker_selfsignme.openssl_conf", $configs[0]['openssl_conf']);
         $container->setParameter("samker_selfsignme.config", $configs[0]['config']);
         $container->setParameter("samker_selfsignme.survey", $configs[0]['survey']);
     }

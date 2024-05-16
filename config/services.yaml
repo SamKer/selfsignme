@@ -4,6 +4,7 @@ services:
     autoconfigure: true # Automatically registers your services as commands, event subscribers, etc.
     bind:
       $selfsignmeDir: "%samker_selfsignme.dir%"
+      $selfsignmeOpensslConf: "%samker_selfsignme.openssl_conf%"
       $selfsignmeConfig: "%samker_selfsignme.config%"
       $selfsignmeSurvey: "%samker_selfsignme.survey%"
 

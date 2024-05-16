@@ -13,6 +13,7 @@ class Configuration implements ConfigurationInterface
         $treebuilder->getRootNode()
             ->children()
                 ->scalarNode("dir")->defaultValue("/var/www/var/selfsignme")->end()
+                ->scalarNode("openssl_conf")->defaultValue("/usr/lib/ssl/openssl.cnf")->end()
                 ->arrayNode("config")
                     ->arrayPrototype()
                         ->children()
