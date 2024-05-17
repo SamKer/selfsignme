@@ -10,6 +10,7 @@ namespace SamKer\SelfSignMe\Lib;
 
 
 use Exception;
+use Jelix\IniFile\IniException;
 use Jelix\IniFile\IniModifier;
 use Random\RandomException;
 use SamKer\SelfSignMe\Entity\Certificat;
@@ -118,15 +119,19 @@ class Certificates
 
     /**
      * Create a certificate
+     * Les San ne semble pas être pris en compte en option pour les csr
+     * On utilise ici la méthode classique de modifier le openssl.cnf en live pour le fournir à la fct openssl_new_csr
      *
      * @param string $cn commonName
      * @param string $conf specific config
-     * @param string $passphrase mot de pass
-     * @param string $caconf ca à utiliser
-     * @param string $capath
-     * @param string $capass
+     * @param string|null $passphrase mot de pass
+     * @param string|null $caconf ca à utiliser
+     * @param string|null $capath
+     * @param string|null $capass
+     * @param array $san
      * @return string $dir
      * @throws RandomException
+     * @throws IniException
      */
     public function createCRT(
         string $cn,
@@ -136,7 +141,7 @@ class Certificates
         ?string $capath = null,
         ?string $capass = null,
         array $san = []
-    )
+    ): string
     {
         $fs = new Filesystem();
         //test conf
@@ -188,10 +193,9 @@ class Certificates
         );
 
         $ini = new IniModifier($opensslConf);
-//        $ini->setValue("subjectAltName", "\${ENV::SELFSIGNME_SUBJECTALTNAME}", " v3_req ");
-        $ini->setValue("subjectAltName", "@selffsignme_san", " v3_req ");
+        $ini->setValue("subjectAltName", "@selfsignme_san", " v3_req ");
         foreach ($san as $i => $dn) {
-            $ini->setValue("DNS.$i", "$dn", " @selffsignme_san ");
+            $ini->setValue("DNS.$i", "$dn", " selfsignme_san ");
         }
 
         $ini->save();
@@ -221,7 +225,7 @@ class Certificates
         }
 
         $cacert = file_get_contents($capath);
-        $capkey = openssl_pkey_get_private('file://' . $this->dirConfig . "/" . $caconf . "/" . $caconf . ".key", $capass);
+        $capkey = openssl_pkey_get_private("file://$this->dirConfig/$caconf/$caconf.key", $capass);
         if ($capkey === false) {
             throw new Exception(openssl_error_string());
         }
