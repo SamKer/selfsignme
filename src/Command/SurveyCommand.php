@@ -104,6 +104,7 @@ class SurveyCommand extends Command
         foreach ($survey['mailto'] as $to) {
             $message->addTo($to);
         }
+        $message->subject("Certificats Check");
         $message->from($survey['mailfrom']);
         $message->html(
             $this->twig->render("@SamKerSelfSignMe/Default/mail.html.twig",
