@@ -1,0 +1,24 @@
+{
+    "name": "samker/selfsignme",
+    "description": "create self sign certificate",
+    "type": "symfony-bundle",
+    "license": "GPL-3.0-or-later",
+    "version": "1.1.1",
+    "authors" : [{
+    	"name" : "samir.keriou",
+    	"email" : "samir.keriou@gmail.com"
+	}], 
+    "keywords" : [
+    	"symfony bundle self signed certificate"
+  	],
+    "require" : {
+    	"php" : ">=5.5.0",
+    	"symfony/framework-bundle" : ">=2.5.6"
+    	},
+    "autoload" : {
+    "psr-0" : {
+      	"SamKer\\SelfSignMe" : "vendor/samker/selfsignme/src/"
+    	}
+    },
+    "target-dir" : ""
+}

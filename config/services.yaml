@@ -1,0 +1,29 @@
+services:
+
+    # makes classes in src/ available to be used as services
+    # this creates a service per class whose id is the fully-qualified class name
+    SamKer\SelfSignMe\:
+        resource: '../src/'
+        exclude:
+            - '../src/DependencyInjection/'
+            - '../src/Entity/'
+            - '../src/Kernel.php'
+
+
+
+    SamKer\SelfSignMe\Command\:
+        resource: '../src/Command/'
+        tags: ['console.command']
+        autowire: true
+    # add more service definitions when explicit configuration is needed
+    # please note that last definitions always *replace* previous ones
+
+
+    SamKer\SelfSignMe\Services\Certificates:
+        arguments: [ "@service_container", "%selfsignme%" ]
+
+    self_sign_me.survey:
+        class: SamKer\SelfSignMe\Command\SelfSignMeSurveyCommand
+        arguments: [ "@twig" ]
+        tags:
+            - { name: console.command , command: 'selfsignme:survey' }

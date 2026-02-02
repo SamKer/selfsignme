@@ -1,0 +1,69 @@
+# SELFSIGNME
+
+a Bundle Symfony to create quickly certificates with ca self-signed
+
+
+## edit config
+in parameters.yml
+
+```yaml
+#params bundle selfsignme
+selfsignme:
+        #store certificates in dir
+        dir: "/home/samir.keriou/.selfsignme"
+        #multiple template config for generating certificates
+        config:
+            #default config
+            default:
+                passphrase: false
+                days: "365"
+                algorythme:
+                    digest_alg: "sha512"
+                    x509_extensions: "v3_req"
+                    private_key_bits: 2048
+                    private_key_type: "!php/const:OPENSSL_KEYTYPE_RSA"
+                csr:
+                    countryName: "FR"
+                    stateOrProvinceName: "STATE"
+                    localityName: "CITY"
+                    organizationName: "ORGA"
+                    organizationalUnitName: "CIE"
+                    commonName: null
+                    emailAddress: "mail"
+```
+
+## commands available
+in app/AppKernal.php
+register bundle
+```php
+new SamKer\SelfSignMe\SamKerSelfSignMe();
+```
+
+in app/config.yml
+```yml
+imports:
+    [...]
+    - { resource: "@SamKerSelfSignMe/Resources/config/services.yml" }
+```
+commands disponible
+```bash
+php -f bin/console -- selfsignme:create ca --type=ca --config=default
+php -f bin/console -- selfsignme:create test.sam --caconf=ca
+```
+
+or from controller
+```php
+$service = $this->get('self_sign_me.certificates');
+
+//create a ca
+$service->createCA($cn, $conf, $passphrase);
+//create certificates
+$service->createCRT($cn, $conf, $passphrase, $caconf, $capath, $capass);
+//dump certificates
+$dump = $service->dumpCertificates($cn);
+dump($dump);
+## survey certs tools
+testing mail
+```bash
+swaks -tls -t samir.keriou@gendarmerie.interieur.gouv.fr -s smtp.gendarmerie.fr "test" -f samir.keriou@gendarmerie.interieur.gouv.fr -p 25 -au samir.keriou -ap ***
+```
