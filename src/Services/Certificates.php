@@ -6,10 +6,9 @@
  * Time: 15:46
  */
 
-namespace SelfSignMe\src\Services;
+namespace SamKer\SelfSignMe\Services;
 
 
-use SamKer\SelfSignMe\Services\sting;
 use Symfony\Component\DependencyInjection\Container;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
@@ -88,8 +87,8 @@ class Certificates {
         $config['algorythme']['x509_extensions'] = 'v3_ca';
         $configAlgo = $config['algorythme'];
         //$passphrase
-        if ($passphrase === false) {
-            $passphrase = $config['passphrase'];
+        if ($passphrase === false || $passphrase === "") {
+            $passphrase = null;
         } else {
             $config['passphrase'] = $passphrase;
         }
@@ -132,14 +131,15 @@ class Certificates {
      *
      * @param string $CN     commonName
      * @param string $conf specific config
-     * @param string $passphrase mot de pass
+     * @param null|string $passphrase mot de pass
      * @param string $caconf ca à utiliser
      * @param string $capath
      * @param string $capass
      * @return string $dir
      */
-    public function createCRT($CN, $conf, $passphrase = false, $caconf = false, $capath = false, $capass = false) {
+    public function createCRT($CN, $conf, $passphrase = null, $caconf = false, $capath = false, $capass = false) {
         $fs = new Filesystem();
+
         //test conf
         if (!isset($this->config[$conf])) {
             throw new \Exception("conf option for ca: $conf not exist in parameters");
@@ -156,8 +156,8 @@ class Certificates {
         //algo crypt
         $configAlgo = $config['algorythme'];
         //$passphrase
-        if ($passphrase === false) {
-            $passphrase = $config['passphrase'];
+        if ($passphrase === false || $passphrase === "") {
+            $passphrase = null;
         } else {
             $config['passphrase'] = $passphrase;
         }
@@ -239,6 +239,38 @@ class Certificates {
             $dump[$file->getExtension()] = $file->getContents();
         }
         return $dump;
+    }
+
+    public function check($host) {
+        $port = 443;
+        $context = stream_context_create([
+            'ssl' => [
+                'capture_peer_cert' => true,
+                'verify_peer' => false,
+                'verify_peer_name' => false,
+            ]
+        ]);
+
+        $client = @stream_socket_client(
+            "ssl://{$host}:{$port}",
+            $errno,
+            $errstr,
+            10,
+            STREAM_CLIENT_CONNECT,
+            $context
+        );
+
+        if (!$client) {
+            die("Connexion échouée: $errstr ($errno)\n");
+        }
+
+        $params = stream_context_get_params($client);
+        $cert = $params['options']['ssl']['peer_certificate'];
+
+        $certInfo = openssl_x509_parse($cert);
+
+        return $certInfo;
+
     }
 
 

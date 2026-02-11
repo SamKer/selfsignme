@@ -1,10 +1,13 @@
 <?php
 
-namespace SelfSignMe\src\Command;
+namespace SamKer\SelfSignMe\Command;
 
+use SamKer\SelfSignMe\Services\Certificates;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Mailer\MailerInterface;
+use Symfony\Component\Mime\Email;
 use Symfony\Component\Process\Exception\ProcessFailedException;
 use Symfony\Component\Process\Process;
 use Twig\Environment;
@@ -18,13 +21,17 @@ class SelfSignMeSurveyCommand extends Command
      * @var Environment
      */
     private $twig;
+    private MailerInterface $mailer;
+    private Certificates $certificates;
 
     /**
      * SelfSignMeSurveyCommand constructor.
      * @param Environment $twig
      */
-    public function __construct(Environment $twig) {
+    public function __construct(Environment $twig, MailerInterface $mailer, Certificates $certificates) {
         $this->twig = $twig;
+        $this->mailer = $mailer;
+        $this->certificates = $certificates;
         parent::__construct();
     }
 
@@ -41,7 +48,7 @@ class SelfSignMeSurveyCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
 //        $argument = $input->getArgument('argument');
-        $config = $this->getContainer()->getParameter('selfsignme');
+        $config = $this->getApplication()->getKernel()->getContainer()->getParameter('selfsignme');
         $survey = $config['survey'];
 
 //        foreach ($survey['local'] as $certFile) {
@@ -51,6 +58,7 @@ class SelfSignMeSurveyCommand extends Command
 // nmap -p 443 --script ssl-cert sagef.dvgendarmerie.fr | grep "Not valid after" | cut -d':' -f2
 //        openssl s_client -connect sagef.dvgendarmerie.fr:443
 
+
         $rapport = [];
 
         $now = new \DateTime();
@@ -59,7 +67,10 @@ class SelfSignMeSurveyCommand extends Command
             $cmd = "nmap -p 443 --script ssl-cert $host";
 //            $cmd = "nmap -p 443 --script ssl-cert $host | grep 'Not valid after' | cut -d':' -f2,3,4";
 //            $date = $this->cmd($cmd);
+            $r = $this->certificates->check($host);
+            dd($r);
             $r = $this->cmd($cmd);
+            dd($r);
             $r = explode("\n", $r);
             $p = [];
             foreach ($r as $l) {
@@ -100,21 +111,24 @@ class SelfSignMeSurveyCommand extends Command
         ksort($rapport);
 //        dump($rapport);die;
 
-        $message = new \Swift_Message("SURVEY CERTIFICATES");
-        $message->setTo($survey['mailto']);
-        $message->setFrom("samir.keriou@gendarmerie.interieur.gouv.fr");
-        $message->setBody(
-            $this->twig->render("@SamKerSelfSignMe/Default/mail.html.twig",
-                ['rapport' => $rapport]
+        $message = (new Email())
+            ->subject("SURVEY CERTIFICATES")
+            ->from("samir.keriou@gendarmerie.interieur.gouv.fr")
+            ->setBody(
+                $this->twig->render("@SamKerSelfSignMe/Default/mail.html.twig",
+                    ['rapport' => $rapport]
+                )
             )
-        );
-        $message->setContentType("text/html");
+            ->setHeaders('ContentType: text/html');
 
-        $mailer = $this->getContainer()->get('mailer');
+        foreach ($survey['mailto'] as $to) {
+            $message->addTo($to);
+        }
+        $mailer = $this->mailer;
 
 
-        $logger = new \Swift_Plugins_Loggers_ArrayLogger();
-        $mailer->registerPlugin(new \Swift_Plugins_LoggerPlugin($logger));
+//        $logger = new \Swift_Plugins_Loggers_ArrayLogger();
+//        $mailer->registerPlugin(new \Swift_Plugins_LoggerPlugin($logger));
 //        dump($mailer);die;
 
 //        $transport = $this->getContainer()->get('swiftmailer.mailer.default.transport');
@@ -123,10 +137,10 @@ class SelfSignMeSurveyCommand extends Command
         $recipients = $mailer->send($message);
 
         dump($recipients);
-        dump($logger->dump());
+//        dump($logger->dump());
 //        die;
 
-
+        return 0;
     }
 
     private function formatDate($date) {
@@ -141,6 +155,7 @@ class SelfSignMeSurveyCommand extends Command
     }
 
     private function cmd($cmd) {
+        $cmd = explode(" ",$cmd);
         $process = new Process($cmd);
         $process->run();
         if (!$process->isSuccessful()) {

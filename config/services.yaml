@@ -22,8 +22,8 @@ services:
     SamKer\SelfSignMe\Services\Certificates:
         arguments: [ "@service_container", "%selfsignme%" ]
 
-    self_sign_me.survey:
-        class: SamKer\SelfSignMe\Command\SelfSignMeSurveyCommand
-        arguments: [ "@twig" ]
-        tags:
-            - { name: console.command , command: 'selfsignme:survey' }
+#    self_sign_me.survey:
+#        class: SamKer\SelfSignMe\Command\SelfSignMeSurveyCommand
+#        arguments: [ "@twig" ]
+#        tags:
+#            - { name: console.command , command: 'selfsignme:survey' }

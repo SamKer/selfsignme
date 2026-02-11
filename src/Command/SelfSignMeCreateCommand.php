@@ -1,9 +1,9 @@
 <?php
 
-namespace SelfSignMe\src\Command;
+namespace SamKer\SelfSignMe\Command;
 
 use AllowDynamicProperties;
-use SelfSignMe\src\Services\Certificates;
+use SamKer\SelfSignMe\Services\Certificates;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -11,9 +11,10 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Filesystem\Filesystem;
 
-#[AllowDynamicProperties]
 class SelfSignMeCreateCommand extends Command {
 
+
+    private ?Certificates $certificates;
 
     public function __construct(?string $name = null, Certificates $certificates = null)
     {
@@ -21,7 +22,7 @@ class SelfSignMeCreateCommand extends Command {
         $this->certificates = $certificates;
     }
 
-    protected function configure()
+    protected function configure(): void
     {
         $this
             ->setName('selfsignme:create')
